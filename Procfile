@@ -1,0 +1,1 @@
+web: gunicorn plate_detection_api.wsgi --log-file -

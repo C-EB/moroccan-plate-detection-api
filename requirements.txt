@@ -1,0 +1,16 @@
+django
+djangorestframework
+gunicorn
+whitenoise
+Pillow
+numpy
+opencv-python-headless
+pytesseract
+arabic-reshaper
+python-bidi
+psycopg2-binary
+django-cors-headers
+dj-database-url
+python-dotenv
+tqdm
+requests
