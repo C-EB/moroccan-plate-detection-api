@@ -1,0 +1,209 @@
+openapi: 3.0.0
+info:
+  title: API de détection de plaques d'immatriculation marocaines
+  description: |
+    Cette API permet de détecter et de reconnaître les plaques d'immatriculation de véhicules marocains à partir d'images.
+    Elle utilise des modèles YOLOv3 personnalisés pour la détection et la reconnaissance des caractères.
+  version: 1.0.0
+  
+
+servers:
+  - url: https://echarif.pythonanywhere.com/api
+    description: Serveur de production PythonAnywhere
+
+paths:
+  /plates/:
+    get:
+      summary: Liste toutes les détections
+      description: Récupère l'historique de toutes les détections de plaques effectuées
+      operationId: getAllDetections
+      responses:
+        '200':
+          description: Liste des détections récupérée avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlateDetection'
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      summary: Détecte une plaque d'immatriculation
+      description: Soumet une image pour la détection et la reconnaissance de plaque d'immatriculation
+      operationId: detectPlate
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: Image du véhicule à analyser
+                ocr_method:
+                  type: string
+                  enum: [trained, tesseract]
+                  default: trained
+                  description: Méthode OCR à utiliser
+              required:
+                - image
+      responses:
+        '201':
+          description: Plaque détectée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlateDetection'
+        '400':
+          description: Requête invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '415':
+          description: Format de média non supporté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /plates/{id}/:
+    get:
+      summary: Récupère une détection spécifique
+      description: Récupère les détails d'une détection spécifique par son ID
+      operationId: getDetection
+      parameters:
+        - name: id
+          in: path
+          description: ID de la détection à récupérer
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détection récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlateDetection'
+        '404':
+          description: Détection non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /plates/detect_bulk/:
+    post:
+      summary: Détecte des plaques dans plusieurs images
+      description: Soumet plusieurs images pour la détection et la reconnaissance de plaques d'immatriculation
+      operationId: detectPlatesBulk
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Images des véhicules à analyser
+                ocr_method:
+                  type: string
+                  enum: [trained, tesseract]
+                  default: trained
+                  description: Méthode OCR à utiliser
+              required:
+                - images
+      responses:
+        '201':
+          description: Plaques détectées avec succès
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlateDetection'
+        '400':
+          description: Requête invalide
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Erreur serveur interne
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    PlateDetection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant unique de la détection
+          example: 7e796783-320b-4168-bffc-7bb75b205f1f
+        image:
+          type: string
+          description: URL relative de l'image originale
+          example: /media/uploads/car_image_123.jpg
+        result_image:
+          type: string
+          description: URL relative de l'image résultat avec la plaque détectée
+          example: /media/results/car_image_123_result.jpg
+        plate_text:
+          type: string
+          description: Texte extrait de la plaque d'immatriculation
+          example: 666 | 1 | و
+        confidence:
+          type: number
+          format: float
+          description: Niveau de confiance de la détection (pourcentage)
+          example: 95.30
+        created_at:
+          type: string
+          format: date-time
+          description: Date et heure de la détection
+          example: 2025-03-11T10:28:39.123456Z
+        ocr_method:
+          type: string
+          description: Méthode OCR utilisée pour la détection
+          enum: [trained, tesseract]
+          example: trained
+      required:
+        - id
+        - image
+        - created_at
+        - ocr_method
+    
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Message d'erreur
+          example: Aucune plaque d'immatriculation détectée dans l'image
+      required:
+        - error
